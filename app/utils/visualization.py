@@ -1,5 +1,4 @@
 """Visualization utilities for the time series forecasting app."""
-"""Enhanced visualization utilities for the time series forecasting app."""
 
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -10,10 +9,18 @@ from typing import List, Dict
 
 
 class DataVisualizer:
-    """Enhanced class for data visualization functions."""
+    """Class for data visualization functions."""
 
     def plot_time_series(self, df, selected_cols, time_index, title="Time Series Plot"):
-        """Plot time series data with enhanced styling."""
+        """
+        Plot time series data with enhanced styling.
+        
+        Args:
+            df (pd.DataFrame): Input dataframe
+            selected_cols (list): List of columns to plot
+            time_index: Time index for x-axis
+            title (str): Plot title
+        """
         fig, ax = plt.subplots(figsize=(12, 6))
 
         for col in selected_cols:
@@ -30,7 +37,17 @@ class DataVisualizer:
 
     def plot_predictions_with_intervals(self, time_index, actual, predictions,
                                         lower=None, upper=None, title="Model Predictions"):
-        """Plot predictions with confidence intervals."""
+        """
+        Plot predictions with confidence intervals.
+        
+        Args:
+            time_index: Time index for x-axis
+            actual (array-like): Actual values
+            predictions (array-like): Predicted values
+            lower (array-like): Lower confidence bounds
+            upper (array-like): Upper confidence bounds
+            title (str): Plot title
+        """
         fig, ax = plt.subplots(figsize=(12, 6))
 
         # Plot actual values
@@ -54,7 +71,15 @@ class DataVisualizer:
         plt.close()
 
     def plot_forecast(self, history, forecast, intervals=None, title="Forecast"):
-        """Plot historical data with forecast."""
+        """
+        Plot historical data with forecast.
+        
+        Args:
+            history (pd.Series): Historical data
+            forecast (pd.Series): Forecast data
+            intervals (dict): Confidence intervals
+            title (str): Plot title
+        """
         fig, ax = plt.subplots(figsize=(12, 6))
 
         # Plot historical data
@@ -79,52 +104,17 @@ class DataVisualizer:
         st.pyplot(fig)
         plt.close()
 
-    def plot_model_diagnostics(self, residuals, predictions, actual):
-        """Plot model diagnostic charts."""
-        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-
-        # Residuals plot
-        axes[0, 0].plot(residuals, marker='o', linestyle='None', alpha=0.5)
-        axes[0, 0].axhline(y=0, color='r', linestyle='--')
-        axes[0, 0].set_title('Residuals Over Time')
-        axes[0, 0].grid(True, alpha=0.3)
-
-        # Histogram of residuals
-        sns.histplot(residuals, kde=True, ax=axes[0, 1])
-        axes[0, 1].set_title('Residuals Distribution')
-
-        # Q-Q plot
-        from scipy.stats import probplot
-        probplot(residuals, dist="norm", plot=axes[1, 0])
-        axes[1, 0].set_title('Normal Q-Q Plot')
-
-        # Predicted vs Actual
-        axes[1, 1].scatter(predictions, actual, alpha=0.5)
-        axes[1, 1].plot([actual.min(), actual.max()], [actual.min(), actual.max()],
-                        'r--', lw=2)
-        axes[1, 1].set_xlabel('Predicted')
-        axes[1, 1].set_ylabel('Actual')
-        axes[1, 1].set_title('Predicted vs Actual')
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
-
-    def plot_feature_importance(self, importance_df):
-        """Plot feature importance."""
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        importance_df = importance_df.sort_values(ascending=True)
-        importance_df.plot(kind='barh', ax=ax)
-
-        ax.set_title('Feature Importance', fontsize=14, pad=20)
-        ax.set_xlabel('Importance Score', fontsize=12)
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
-
     def plot_model_comparison(self, results: List[Dict], metrics=['MAE', 'RMSE', 'MAPE']):
-        """Plot model comparison charts."""
+        """
+        Plot model comparison charts.
+        
+        Args:
+            results (list): List of dictionaries with model results
+            metrics (list): List of metrics to compare
+            
+        Returns:
+            pd.DataFrame: DataFrame with comparison results
+        """
         # Convert results to DataFrame
         if not results:
             st.warning("No results to display")
@@ -153,41 +143,13 @@ class DataVisualizer:
 
         return results_df
 
-    def plot_training_history(self, history):
-        """Plot training history for deep learning models."""
-        if not history:
-            st.warning("No training history to display")
-            return
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
-
-        # Plot training & validation loss
-        ax1.plot(history.history['loss'], label='Train')
-        if 'val_loss' in history.history:
-            ax1.plot(history.history['val_loss'], label='Validation')
-        ax1.set_title('Model Loss')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Loss')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-
-        # Plot training & validation metrics
-        for metric in history.history.keys():
-            if metric not in ['loss', 'val_loss']:
-                ax2.plot(history.history[metric],
-                         label=metric.replace('_', ' ').title())
-        ax2.set_title('Model Metrics')
-        ax2.set_xlabel('Epoch')
-        ax2.set_ylabel('Value')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
-
     def display_data_info(self, df):
-        """Display enhanced dataset information."""
+        """
+        Display enhanced dataset information.
+        
+        Args:
+            df (pd.DataFrame): Input dataframe
+        """
         st.subheader("Dataset Overview")
 
         # Basic info in columns

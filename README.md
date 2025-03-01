@@ -1,128 +1,128 @@
-# Time Series Forecasting Application
+# Time Series Forecasting Platform
 
-A comprehensive Streamlit application for time series forecasting using various models including traditional statistical methods, machine learning, and deep learning approaches.
+An advanced Streamlit application for time series forecasting with support for Prophet and AutoGluon.
 
 ## Features
 
-- Multiple model support:
-  - Traditional Models (ARIMA, SARIMA)
-  - Machine Learning Models (Random Forest, XGBoost)
-  - Deep Learning Models (RNN, LSTM, Stacked LSTM+RNN)
-- Interactive data visualization
-- Model comparison and evaluation
-- Prediction intervals
-- Cross-validation support
-- Feature engineering
-- Model diagnostics
-
-## Installation
-
-1. Clone the repository:
-```bash
-cd Streamlit_ML_team_app
-```
-
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-Run the Streamlit application:
-```bash
-streamlit run app/main.py
-```
-
-The application will be available at `http://localhost:8501`.
-
-### Data Input
-
-The application supports multiple data input methods:
-- Upload CSV files
-- Load from GitHub repository
-- Use example datasets
-
-### Model Selection
-
-1. Choose model categories:
-   - Traditional Models
-   - Machine Learning Models
-   - Deep Learning Models
-
-2. Configure model parameters:
-   - Sequence length for deep learning models
-   - Number of estimators for tree-based models
-   - ARIMA/SARIMA orders
-   - Learning rates and other hyperparameters
-
-### Training and Evaluation
-
-The application provides:
-- Cross-validation results
-- Model performance metrics
-- Visualization of predictions
-- Model diagnostics
-- Prediction intervals
+- 📊 **Multiple Data Sources**: Upload your data from CSV files or connect to online repositories
+- 🧹 **Data Preprocessing**: Clean and transform your time series data
+- 🤖 **Multiple Models**: Choose from statistical, machine learning, and deep learning models
+- 📈 **Advanced Forecasting**: Use Prophet and AutoGluon for state-of-the-art forecasting
+- 📊 **Visualization**: Compare model results with interactive charts
+- 📋 **Export Results**: Save your forecasts in various formats
 
 ## Project Structure
 
 ```
-project/
-├── app/
-│   ├── main.py               # Main Streamlit application
-│   ├── config.py            # Configuration and constants
-│   ├── data/                # Data handling
-│   ├── models/              # Model implementations
-│   └── utils/               # Utility functions
-├── data/                    # Sample datasets
-├── docs/                    # Documentation
-├── tests/                   # Unit tests
-├── requirements.txt
-└── README.md
+app/
+├── __init__.py          # Package initialization
+├── config.py            # Configuration settings
+├── main.py              # Original main application (old structure)
+├── main_v2.py           # New main application with improved structure
+├── simple_main.py       # Simplified main app for testing
+├── data/
+│   ├── __init__.py      # Data package initialization
+│   ├── loader.py        # Data loading functions
+│   └── preprocessor.py  # Data preprocessing utilities
+├── models/
+│   ├── __init__.py      # Models package initialization
+│   ├── base.py          # Base model class
+│   ├── deep_learning.py # Deep learning model implementations
+│   ├── trainer.py       # Model training utilities
+│   ├── prophet.py       # Facebook Prophet implementation
+│   └── autogluon.py     # AutoGluon implementation
+└── utils/
+    ├── __init__.py      # Utilities package initialization
+    ├── helpers.py       # Helper functions
+    └── visualization.py # Visualization utilities
 ```
 
-## Development
+## Installation
 
-### Running Tests
+1. Clone this repository:
+
 ```bash
-pytest tests/
+git clone https://github.com/yourusername/time-series-forecasting.git
+cd time-series-forecasting
 ```
 
-### Code Style
-The project follows PEP 8 style guide. Format code using:
+2. Create a conda environment:
+
 ```bash
-black .
-isort .
+conda create -n ts_forecasting python=3.10
+conda activate ts_forecasting
 ```
 
-## Contributing
+3. Install required packages:
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Push to the branch
-5. Open a Pull Request
+```bash
+pip install -r requirements.txt
+```
+
+4. (Optional) Install Facebook Prophet:
+
+```bash
+pip install prophet
+```
+
+5. (Optional) Install AutoGluon:
+
+```bash
+pip install autogluon.timeseries
+```
+
+## Running the Application
+
+To run the application:
+
+```bash
+streamlit run app/simple_main.py
+```
+
+For the full-featured application:
+
+```bash
+streamlit run app/main_v2.py
+```
+
+## Getting Started
+
+1. Go to the **Data Upload** page to load your time series data
+2. Clean and preprocess your data
+3. Select models and generate forecasts
+4. Compare and export results
+
+## Dependencies
+
+Core dependencies:
+- streamlit
+- pandas
+- numpy
+- matplotlib
+- plotly
+- scikit-learn
+- tensorflow
+
+Optional dependencies:
+- prophet
+- autogluon.timeseries
+
+## Troubleshooting
+
+If you encounter the error "No module named 'models.trainer'", try one of these solutions:
+
+1. Use absolute imports by adding this to the beginning of your main script:
+```python
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+```
+
+2. Run the application from the project root directory:
+```bash
+streamlit run app/main_v2.py
+```
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [Streamlit](https://streamlit.io/)
-- Inspired by various time series forecasting techniques and best practices
-
-## Authors
-
-- 
-
-## Contact
-
-- Email:
