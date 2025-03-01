@@ -1,15 +1,21 @@
 """Data loading functions for different data sources."""
 
-
 import requests
 from bs4 import BeautifulSoup
-
 import pandas as pd
 import streamlit as st
 
 
 def fix_dtypes(df):
-    """Fix data types for Arrow compatibility."""
+    """
+    Fix data types for Arrow compatibility.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        
+    Returns:
+        pd.DataFrame: DataFrame with fixed data types
+    """
     for col in df.columns:
         # Get column dtype
         dtype = df[col].dtype
@@ -37,21 +43,34 @@ def fix_dtypes(df):
 
 
 def load_data(source_type, uploaded_file=None, github_url=None, selected_file=None):
-    """Load data with proper type handling."""
+    """
+    Load data with proper type handling.
+    
+    Args:
+        source_type (str): Type of data source
+        uploaded_file: Uploaded file object
+        github_url (str): GitHub repository URL
+        selected_file (str): Selected file from GitHub
+        
+    Returns:
+        pd.DataFrame: Loaded dataframe
+    """
     try:
         st.write("Debug: Loading data from source type:", source_type)
 
         if source_type == "upload" and uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
+            st.success("File uploaded successfully!")
         elif source_type == "github" and github_url and selected_file:
             df = pd.read_csv(selected_file)
+            st.success(f"File loaded from GitHub: {selected_file}")
         else:
             return None
 
         # Handle date columns
         for col in df.columns:
-            # Try to convert to datetime if column name contains 'date' or 'time'
-            if any(word in col.lower() for word in ['date', 'time']):
+            # Try to convert to datetime if column name suggests datetime
+            if any(word in col.lower() for word in ['date', 'time', 'day', 'year', 'month']):
                 try:
                     df[col] = pd.to_datetime(df[col])
                     st.write(f"Debug: Converted {col} to datetime")
@@ -65,11 +84,21 @@ def load_data(source_type, uploaded_file=None, github_url=None, selected_file=No
 
     except Exception as e:
         st.error(f"Error loading data: {str(e)}")
+        import traceback
+        st.error(traceback.format_exc())
         return None
 
 
 def get_dtypes_info(df):
-    """Get DataFrame data types information."""
+    """
+    Get DataFrame data types information.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        
+    Returns:
+        pd.DataFrame: DataFrame with data type information
+    """
     dtypes_info = pd.DataFrame({
         'Data Type': df.dtypes,
         'Non-Null Count': df.count(),
@@ -77,6 +106,7 @@ def get_dtypes_info(df):
         'Sample Values': [df[col].iloc[0] if len(df) > 0 else None for col in df.columns]
     })
     return dtypes_info
+
 
 def get_github_files(repo_url):
     """
@@ -118,7 +148,7 @@ def load_example_data(url):
         pd.DataFrame: Loaded dataframe or None if error
     """
     try:
-        df = pd.read_csv(url, index_col=0, header=[0, 1])['Close']
+        df = pd.read_csv(url)
         return df
     except Exception as e:
         st.error(f"Error loading example data: {str(e)}")
