@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Time Series Forecasting Platform
 
 An advanced Streamlit application for time series forecasting with support for Prophet and AutoGluon.
@@ -126,3 +127,6 @@ streamlit run app/main_v2.py
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+=======
+# Data_streamlit_app
+>>>>>>> 3fd957619fd234861f6b7212d36b7c209aad111b

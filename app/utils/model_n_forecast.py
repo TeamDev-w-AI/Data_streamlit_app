@@ -761,34 +761,38 @@ def modeling_and_forecasting():
                                 try:
                                     sequence_length = st.session_state.hyperparameters['sequence_length']
                                     
-                                    # Extract the last sequence from the scaled data
+                                    # After extracting the last sequence from the scaled data
                                     last_sequence = df[target_column].values[-sequence_length:]
-                                    
-                                    # Scale the sequence
                                     scaled_sequence = scaler.transform(last_sequence.reshape(-1, 1))
-                                    
-                                    # Reshape for prediction
                                     scaled_sequence = scaled_sequence.reshape(1, sequence_length, 1)
-                                    
+
                                     # Initialize array for storing predictions
                                     forecasts = []
-                                    
+
+                                    # Store the actual last value from historical data for reference
+                                    last_actual_value = df[target_column].values[-1]
+                                    st.write(f"Last historical value: {last_actual_value}")
+
                                     # Generate predictions recursively
                                     curr_sequence = scaled_sequence.copy()
-                                    for _ in range(forecast_horizon):
+                                    for i in range(forecast_horizon):
                                         # Predict next value
                                         next_pred = model.predict(curr_sequence)[0][0]
                                         forecasts.append(next_pred)
                                         
-                                        # Update sequence for next prediction
-                                        curr_sequence = np.append(
-                                            curr_sequence[:, 1:, :], 
-                                            [[next_pred]], 
+                                        # Debug output
+                                        st.write(f"Step {i+1}: Predicted scaled value: {next_pred}")
+                                        
+                                        # Update the sequence for next prediction
+                                        next_pred_reshaped = np.reshape(next_pred, (1, 1, 1))
+                                        curr_sequence = np.concatenate(
+                                            [curr_sequence[:, 1:, :], next_pred_reshaped], 
                                             axis=1
                                         )
-                                    
+
                                     # Inverse transform predictions
                                     forecasts = scaler.inverse_transform(np.array(forecasts).reshape(-1, 1)).flatten()
+                                    st.write(f"First forecast value: {forecasts[0]}")
                                     
                                     # Create forecast DataFrame
                                     last_date = df.index[-1]

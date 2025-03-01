@@ -1,0 +1,29 @@
+Beginning AutoGluon training...
+AutoGluon will save models to 'C:\Users\Matt W\OneDrive\Documents\GitHub\USU\Hack_usu\Streamlit_ML_team_app\smalls\AutogluonModels\ag-20250301_111807'
+=================== System Info ===================
+AutoGluon Version:  1.2
+Python Version:     3.9.15
+Operating System:   Windows
+Platform Machine:   AMD64
+Platform Version:   10.0.26100
+CPU Count:          16
+GPU Count:          0
+Memory Avail:       12.00 GB / 27.72 GB (43.3%)
+Disk Space Avail:   409.84 GB / 930.64 GB (44.0%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'hyperparameters': 'default',
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 30,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'satisfaction_level',
+ 'verbosity': 2}
+
