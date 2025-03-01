@@ -1,39 +1,35 @@
-"""
-Enhanced Streamlit application for time series forecasting with improved UI.
-"""
-import sys
-import os
-import streamlit as st
-import pandas as pd
+
+from scipy import stats
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-from scipy import stats
 from datetime import datetime
-# In app/main_v2.py or app/simple_main.py
-from app.models import SimpleRNNModel, LSTMModel, ModelTrainer
-from app.data import TimeSeriesPreprocessor
-from app.utils import DataVisualizer, validate_data
-
-# Configure paths and imports
+import streamlit as st
+import os
 import sys
-sys.path.append('.')
+import traceback
 
-# Add local modules
+# Import your module components
+from models.deep_learning import SimpleRNNModel, LSTMModel, StackedModel, create_dl_model
+from models.traditional import ARIMAModel, SARIMAModel, create_traditional_model
+from models.machine_learning import RandomForestModel, XGBoostModel, create_ml_model
+from data.preprocessor import TimeSeriesPreprocessor
+from utils.visualization import DataVisualizer
+from utils.helpers import validate_data, get_time_index, setup_environment
+from models.trainer import ModelTrainer
+from config import *  # Import constants from config.py
+
 from config import *
 from data.loader import load_data, get_github_files, get_dtypes_info
 from data.preprocessor import TimeSeriesPreprocessor
 from utils.visualization import DataVisualizer
 from utils.helpers import setup_environment, validate_data, get_time_index
-from models.trainer import ModelTrainer
+from utils.model_n_forecast import modeling_and_forecasting
 
-# Import model implementations
-from models.deep_learning import SimpleRNNModel, LSTMModel, StackedModel
-from models.traditional import ARIMAModel, SARIMAModel, create_traditional_model
-from models.machine_learning import RandomForestModel, XGBoostModel, create_ml_model
 
-# Import Prophet and AutoGluon with try/except for graceful degradation
+# Check for optional dependencies
 try:
     from models.prophet import ProphetModel, create_prophet_model
     PROPHET_AVAILABLE = True
@@ -47,19 +43,36 @@ except ImportError:
     AUTOGLUON_AVAILABLE = False
 
 
+def results_and_export():
+    """Fourth stage: Results visualization and export."""
+    st.markdown('<div class="section-header"><h2>📊 Results & Export</h2></div>', unsafe_allow_html=True)
+    
+    if 'model_results' not in st.session_state or not st.session_state.model_results:
+        st.warning("No model results available. Please complete the Modeling & Forecasting stage first.")
+        if st.button("Go to Modeling & Forecasting"):
+            st.session_state.current_stage = "Modeling & Forecasting"
+            st.rerun()
+        return
+    
+    st.info("This section is under development. Please check back later!")
+    st.markdown("""
+    ### Coming Soon:
+    - Detailed result visualizations
+    - Model comparison
+    - Export options for forecasts
+    - Report generation
+    """)
+
 def main():
     """Main application function with improved UI flow."""
-    # Setup environment
     setup_environment()
     
-    # Configure Streamlit page
     st.set_page_config(
         layout="wide",
         page_title="Time Series Forecasting App",
         page_icon="📈"
     )
     
-    # Add custom CSS
     st.markdown("""
     <style>
     .main-header {
@@ -83,14 +96,12 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    # Title and description
     st.markdown('<div class="main-header">Time Series Forecasting Platform</div>', unsafe_allow_html=True)
     st.markdown("""
     An advanced platform for time series data analysis and forecasting with multiple models,
     including traditional approaches, machine learning, deep learning, Facebook Prophet, and AutoGluon.
     """)
     
-    # Create sidebar
     with st.sidebar:
         st.title("Navigation")
         app_mode = st.radio(
@@ -98,7 +109,6 @@ def main():
             ["Data Upload & Preview", "Data Preprocessing", "Modeling & Forecasting", "Results & Export"]
         )
     
-    # Initialize session state
     if 'data' not in st.session_state:
         st.session_state.data = None
     if 'preprocessed_data' not in st.session_state:
@@ -112,7 +122,6 @@ def main():
     if 'forecasts' not in st.session_state:
         st.session_state.forecasts = {}
     
-    # App modes
     if app_mode == "Data Upload & Preview":
         data_upload_and_preview()
     elif app_mode == "Data Preprocessing":
@@ -122,12 +131,10 @@ def main():
     elif app_mode == "Results & Export":
         results_and_export()
 
-
 def data_upload_and_preview():
     """First stage: Data upload, preview, and initial analysis."""
     st.markdown('<div class="section-header"><h2>📤 Data Upload & Preview</h2></div>', unsafe_allow_html=True)
     
-    # Data source selection
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Select Data Source")
     data_source = st.radio(
@@ -138,7 +145,6 @@ def data_upload_and_preview():
     
     df = None
     
-    # Process based on data source selection
     if data_source == "Upload CSV File":
         uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
         if uploaded_file:
@@ -180,28 +186,25 @@ def data_upload_and_preview():
         if selected_dataset:
             with st.spinner(f"Loading {selected_dataset} dataset..."):
                 try:
-                    # Handle different dataset formats
                     if selected_dataset == "Stock Prices":
+                        # Use fallback method since parse_dates fails for this dataset
                         df = pd.read_csv(example_datasets[selected_dataset], index_col=0, header=[0, 1])['Close']
+                        df = df.reset_index()
+                        st.success("Loaded stock price data using fallback method")
                     else:
                         df = pd.read_csv(example_datasets[selected_dataset])
-                    
-                    if df is not None:
                         st.success(f"{selected_dataset} dataset loaded successfully!")
                 except Exception as e:
                     st.error(f"Error loading example dataset: {str(e)}")
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # If data is loaded, display data preview and set up time index
     if df is not None:
         st.session_state.data = df
         
-        # Data Preview Section
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("📊 Data Preview")
         
-        # Display basic info in a clean layout
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Rows", f"{df.shape[0]:,}")
@@ -210,15 +213,12 @@ def data_upload_and_preview():
         with col3:
             st.metric("Missing Values", f"{df.isnull().sum().sum():,}")
         
-        # Show data sample
         with st.expander("View Data Sample", expanded=True):
             st.dataframe(df.head(10), use_container_width=True)
         
-        # Data information
         with st.expander("View Data Types and Information"):
             st.dataframe(get_dtypes_info(df), use_container_width=True)
         
-        # Data statistics
         with st.expander("View Statistics"):
             if df.select_dtypes(include=['number']).shape[1] > 0:
                 st.dataframe(df.describe(), use_container_width=True)
@@ -227,68 +227,88 @@ def data_upload_and_preview():
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Time Index and Target Selection
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("⏱️ Time Index & Target Selection")
         
-        # Identify potential datetime columns
+        # Debug output to inspect index and columns
+        # st.write("Debug: DataFrame index type:", type(df.index))
+        # st.write("Debug: DataFrame columns:", df.columns.tolist())
+        # st.write("Debug: Is index a DatetimeIndex?", isinstance(df.index, pd.DatetimeIndex))
+        
+        # Identify potential datetime columns (for debugging purposes)
         time_cols = []
         for col in df.columns:
-            # Check if column name suggests datetime
-            if any(time_word in col.lower() for time_word in ['date', 'time', 'day', 'year', 'month']):
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
                 time_cols.append(col)
-            # Or try converting to check if it's datetime
-            elif df[col].dtype == 'object':
+            elif col.lower() == 'date' or any(time_word in col.lower() for time_word in ['date', 'time', 'day', 'year', 'month']):
+                time_cols.append(col)
+            else:
                 try:
-                    pd.to_datetime(df[col], errors='raise')
+                    pd.to_datetime(df[col].head(), errors='raise')
                     time_cols.append(col)
                 except:
                     pass
         
-        # Add index as an option if it's a DatetimeIndex
+        # Always include the DataFrame index as a selectable option
         has_date_index = isinstance(df.index, pd.DatetimeIndex)
+        time_index_options = ["Use DataFrame Index"]
         
-        # Time index selection
-        time_index_options = ["Use DataFrame Index"] if has_date_index else []
-        time_index_options.extend(time_cols)
-        time_index_options.append("None/Other")
+        if not has_date_index and (df.index.name not in df.columns):
+            st.write(f"Debug: Adding index to selection options. Index type: {type(df.index)}")
+            time_index_options.extend(df.columns.tolist())
+            time_index_options.append("None/Other")
+        else:
+            time_index_options.extend(df.columns.tolist())
+            time_index_options.append("None/Other")
         
         time_index_selection = st.selectbox(
             "Select Time Index Column",
             time_index_options,
-            index=0 if has_date_index or len(time_cols) > 0 else len(time_index_options) - 1
+            index=0
         )
         
-        # Handle time index selection
-        if time_index_selection == "Use DataFrame Index" and has_date_index:
-            st.info("Using DataFrame index as time index.")
-            time_column = None  # We'll use the index
+        st.write("Debug: Selected time index:", time_index_selection)
+        
+        if time_index_selection == "Use DataFrame Index":
+            if has_date_index:
+                st.info("Using DataFrame index as time index (already datetime format).")
+                time_column = None
+            else:
+                try:
+                    df_copy = df.copy()
+                    df_copy.index = pd.to_datetime(df_copy.index)
+                    df = df_copy
+                    st.success("Converted index to datetime format!")
+                    time_column = None
+                    has_date_index = True
+                except Exception as e:
+                    st.error(f"Could not convert index to datetime: {str(e)}")
+                    if len(df.columns) > 0:
+                        time_column = df.columns[0]
+                    else:
+                        time_column = None
         elif time_index_selection == "None/Other":
-            # Manual time column selection
             time_column = st.selectbox("Select column to use as time index", df.columns)
-            
-            # Option to convert selected column to datetime
-            if time_column and st.button("Convert to Datetime"):
+            if time_column and not pd.api.types.is_datetime64_any_dtype(df[time_column]):
                 try:
                     df[time_column] = pd.to_datetime(df[time_column])
-                    st.success(f"Converted {time_column} to datetime format!")
+                    st.success(f"Automatically converted {time_column} to datetime format!")
                 except Exception as e:
-                    st.error(f"Error converting to datetime: {str(e)}")
+                    st.warning(f"Could not convert {time_column} to datetime format: {str(e)}")
         else:
             time_column = time_index_selection
         
-        # Set the time index if not already set
-        if time_column is not None and not has_date_index:
+        if time_column is not None and time_column != "None/Other":
             try:
-                df.index = pd.to_datetime(df[time_column])
+                if not pd.api.types.is_datetime64_any_dtype(df[time_column]):
+                    df[time_column] = pd.to_datetime(df[time_column])
+                df.index = df[time_column]
                 st.info(f"Set {time_column} as time index.")
-                # Optionally drop the column from the DataFrame
-                if st.checkbox("Remove time column from data"):
+                if st.checkbox("Remove time column from data", value=False):
                     df = df.drop(columns=[time_column])
             except Exception as e:
                 st.warning(f"Could not set time index automatically: {str(e)}")
         
-        # Target selection
         numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
         if len(numeric_cols) > 0:
             target_column = st.selectbox(
@@ -296,30 +316,26 @@ def data_upload_and_preview():
                 numeric_cols
             )
             
-            # Visualize target variable
             if target_column:
                 st.subheader(f"Target Variable: {target_column}")
                 
                 fig = px.line(
-                    df, y=target_column, x=df.index if has_date_index else None,
+                    df, y=target_column, x=df.index if isinstance(df.index, pd.DatetimeIndex) else None,
                     title=f"{target_column} Time Series"
                 )
                 fig.update_layout(
-                    xaxis_title="Time" if has_date_index else "Data Points",
+                    xaxis_title="Time" if isinstance(df.index, pd.DatetimeIndex) else "Data Points",
                     yaxis_title=target_column,
                     showlegend=True
                 )
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # Save selections to session state
                 st.session_state.target_column = target_column
                 st.session_state.time_column = time_column
                 
-                # Button to proceed to the next step
                 if st.button("Proceed to Data Preprocessing"):
                     st.session_state.data = df
-                    # Redirect to preprocessing
-                    st.experimental_rerun()
+                    st.rerun()
         else:
             st.warning("No numeric columns found for target selection.")
         
@@ -327,17 +343,14 @@ def data_upload_and_preview():
     else:
         st.info("Please select a data source and load data to continue.")
 
-
 def data_preprocessing():
     """Second stage: Data preprocessing and feature engineering."""
     st.markdown('<div class="section-header"><h2>🧹 Data Preprocessing</h2></div>', unsafe_allow_html=True)
     
-    # Check if data is available
     if st.session_state.data is None:
         st.warning("No data loaded. Please go back to Data Upload & Preview.")
         if st.button("Go to Data Upload"):
-            # Reset session state
-            st.experimental_rerun()
+            st.rerun()
         return
     
     df = st.session_state.data.copy()
@@ -347,22 +360,18 @@ def data_preprocessing():
         st.error("Target column not selected or not found in data.")
         return
     
-    # Display current dataset summary
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Current Dataset")
     st.write(f"Shape: {df.shape[0]} rows × {df.shape[1]} columns")
     st.write(f"Target Variable: {target_column}")
     
-    # Sample of current data
     with st.expander("View Current Data Sample"):
         st.dataframe(df.head())
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Preprocessing Options
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Preprocessing Options")
     
-    # Missing Value Handling
     missing_col, outlier_col = st.columns(2)
     
     with missing_col:
@@ -381,7 +390,6 @@ def data_preprocessing():
                 ["Mean", "Median", "Mode"]
             )
     
-    # Outlier Detection and Handling
     with outlier_col:
         st.write("**Outlier Detection and Handling**")
         
@@ -401,7 +409,6 @@ def data_preprocessing():
             elif outlier_method == "IQR Method":
                 iqr_factor = st.slider("IQR Factor", 1.0, 3.0, 1.5, 0.1)
     
-    # Data Transformation
     transform_col, features_col = st.columns(2)
     
     with transform_col:
@@ -415,11 +422,9 @@ def data_preprocessing():
         if transform_method == "Box-Cox":
             st.info("Box-Cox requires positive values.")
     
-    # Feature Engineering
     with features_col:
         st.write("**Feature Engineering**")
         
-        # Enable feature engineering options
         add_lag_features = st.checkbox("Add Lag Features")
         if add_lag_features:
             lag_values = st.multiselect(
@@ -449,16 +454,12 @@ def data_preprocessing():
                 default=["Month", "DayOfWeek"]
             )
     
-    # Apply Preprocessing Button
     if st.button("Apply Preprocessing"):
         try:
             with st.spinner("Applying preprocessing steps..."):
-                # Create a preprocessing progress tracker
                 progress_bar = st.progress(0)
                 progress_text = st.empty()
                 
-                # Processing steps
-                # 1. Handle missing values
                 progress_text.text("Handling missing values...")
                 if missing_method != "None":
                     if missing_method == "Drop Rows":
@@ -480,7 +481,6 @@ def data_preprocessing():
                                 df[col] = df[col].fillna(df[col].mode()[0] if not df[col].mode().empty else df[col].mean())
                 progress_bar.progress(0.25)
                 
-                # 2. Handle outliers
                 progress_text.text("Handling outliers...")
                 if outlier_method != "None" and target_column in df.columns:
                     if outlier_method == "IQR Method":
@@ -506,11 +506,9 @@ def data_preprocessing():
                         df.loc[outliers, target_column] = df[target_column].median()
                 progress_bar.progress(0.5)
                 
-                # 3. Apply transformations
                 progress_text.text("Applying transformations...")
                 if transform_method != "None" and target_column in df.columns:
                     if transform_method == "Log Transform":
-                        # Ensure positive values
                         min_val = df[target_column].min()
                         if min_val <= 0:
                             offset = abs(min_val) + 1
@@ -518,7 +516,6 @@ def data_preprocessing():
                         else:
                             df[target_column] = np.log1p(df[target_column])
                     elif transform_method == "Square Root":
-                        # Ensure positive values
                         min_val = df[target_column].min()
                         if min_val < 0:
                             offset = abs(min_val) + 1
@@ -526,7 +523,6 @@ def data_preprocessing():
                         else:
                             df[target_column] = np.sqrt(df[target_column])
                     elif transform_method == "Box-Cox":
-                        # Ensure positive values
                         min_val = df[target_column].min()
                         if min_val <= 0:
                             offset = abs(min_val) + 1
@@ -539,17 +535,13 @@ def data_preprocessing():
                         df[target_column] = (df[target_column] - df[target_column].min()) / (df[target_column].max() - df[target_column].min())
                 progress_bar.progress(0.75)
                 
-                # 4. Feature engineering
                 progress_text.text("Engineering features...")
-                # Initialize a preprocessor for feature engineering
                 preprocessor = TimeSeriesPreprocessor()
                 
-                # Add lag features
                 if add_lag_features and lag_values:
                     for lag in lag_values:
                         df[f'lag_{lag}'] = df[target_column].shift(lag)
                 
-                # Add rolling window features
                 if add_rolling_features and window_sizes:
                     for window in window_sizes:
                         if "Mean" in rolling_features:
@@ -561,7 +553,6 @@ def data_preprocessing():
                         if "Max" in rolling_features:
                             df[f'rolling_max_{window}'] = df[target_column].rolling(window=window).max()
                 
-                # Add date features
                 if add_date_features and isinstance(df.index, pd.DatetimeIndex) and date_features:
                     if "Year" in date_features:
                         df['year'] = df.index.year
@@ -578,39 +569,31 @@ def data_preprocessing():
                     if "IsDayOff" in date_features:
                         df['is_weekend'] = df.index.dayofweek >= 5
                 
-                # Drop NaN values created by lag/rolling features
                 df = df.dropna()
                 
                 progress_bar.progress(1.0)
                 progress_text.text("Preprocessing complete!")
                 
-                # Save preprocessed data to session state
                 st.session_state.preprocessed_data = df
                 
-                # Show success message
                 st.success("Preprocessing applied successfully!")
                 
-                # Clean up progress indicators
                 progress_bar.empty()
                 progress_text.empty()
                 
-                # Display results
                 st.subheader("Preprocessed Data Preview")
                 st.dataframe(df.head())
                 
-                # Show shape changes
                 col1, col2 = st.columns(2)
                 with col1:
                     st.metric("Original Shape", f"{st.session_state.data.shape[0]} × {st.session_state.data.shape[1]}")
                 with col2:
                     st.metric("New Shape", f"{df.shape[0]} × {df.shape[1]}")
                 
-                # Show target variable visualization before and after
                 st.subheader("Target Variable Before vs. After")
                 
                 before_after_fig = go.Figure()
                 
-                # Before preprocessing
                 before_after_fig.add_trace(go.Scatter(
                     x=st.session_state.data.index,
                     y=st.session_state.data[target_column],
@@ -618,7 +601,6 @@ def data_preprocessing():
                     name='Before Preprocessing'
                 ))
                 
-                # After preprocessing
                 before_after_fig.add_trace(go.Scatter(
                     x=df.index,
                     y=df[target_column],
@@ -636,13 +618,11 @@ def data_preprocessing():
                 
                 st.plotly_chart(before_after_fig, use_container_width=True)
                 
-                # Button to proceed to the next step
                 if st.button("Proceed to Modeling & Forecasting"):
-                    st.experimental_rerun()
+                    st.rerun()
                 
         except Exception as e:
             st.error(f"Error during preprocessing: {str(e)}")
-            import traceback
-            st.error(traceback.format_exc())
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()

@@ -117,7 +117,7 @@ def train(self, train_data, val_data=None, **kwargs):
             st.error(f"Error preparing for AutoGluon model training: {str(e)}")
             import traceback
             st.error(traceback.format_exc())
-            return None"""AutoGluon model implementation for time series forecasting."""
+            return None 
 
 import os
 import pandas as pd
